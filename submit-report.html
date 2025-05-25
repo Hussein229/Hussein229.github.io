@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phoenix Sentinel - Submit Report</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/framer-motion@11.0.8/dist/framer-motion.js"></script>
+  <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            'press-start': ['"Press Start 2P"', 'cursive'],
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #1a1a2e, #2a2a4e, #1a1a2e);
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    .star {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background: rgba(234, 179, 8, 0.3);
+      animation: twinkle 3s infinite ease-in-out;
+    }
+    @keyframes twinkle {
+      0%, 100% { transform: scale(1); opacity: 0.3; }
+      50% { transform: scale(2); opacity: 1; }
+    }
+    .skull-rotate {
+      animation: rotate 2s infinite ease-in-out;
+    }
+    @keyframes rotate {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(10deg); }
+      75% { transform: rotate(-10deg); }
+    }
+    .slide-up {
+      animation: slideUp 0.5s ease-out;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="relative min-h-screen">
+    <!-- Background stars -->
+    <script>
+      for (let i = 0; i < 30; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        star.style.left = `${Math.random() * 100}%`;
+        star.style.top = `${Math.random() * 100}%`;
+        star.style.animationDelay = `${Math.random() * 3}s`;
+        document.body.appendChild(star);
+      }
+    </script>
+
+    <div class="max-w-2xl mx-auto px-4 py-8">
+      <div class="bg-black/60 rounded-lg p-8 backdrop-blur-lg border-2 border-yellow-500 slide-up">
+        <div class="flex items-center justify-between mb-8">
+          <a href="/challenge/dashboard" class="text-yellow-500 hover:text-yellow-400 transition flex items-center font-press-start text-sm hover:scale-110 transform">
+            <i data-lucide="arrow-left" class="w-5 h-5 mr-2"></i>
+            Return
+          </a>
+          <i class="skull-rotate text-yellow-500" data-lucide="skull"></i>
+        </div>
+
+        <h2 class="text-2xl font-press-start text-center text-yellow-500 mb-8 flex items-center justify-center space-x-3">
+          <i data-lucide="anchor" class="w-6 h-6"></i>
+          <span>New Bounty</span>
+        </h2>
+
+        <!-- A container for error messages if needed -->
+        <div id="errorMsg" class="mb-4 text-center text-red-500 text-xs"></div>
+
+        <form id="submitForm" class="space-y-6">
+          <div>
+            <label class="block text-yellow-500 mb-2 font-press-start text-sm">🎯 Target Type</label>
+            <select name="target_type"
+              class="w-full bg-black/50 border-2 border-yellow-500/50 rounded-lg px-4 py-3 text-yellow-500 focus:outline-none focus:border-yellow-500 transition font-press-start text-sm"
+            >
+              <option value="url">🌐 URL</option>
+              <option value="domain">🏰 Domain</option>
+              <option value="ip">🎯 IP</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-yellow-500 mb-2 font-press-start text-sm">🗺️ Target</label>
+            <input
+              type="text"
+              name="target"
+              placeholder="Enter target location"
+              class="w-full bg-black/50 border-2 border-yellow-500/50 rounded-lg px-4 py-3 text-yellow-500 placeholder-yellow-500/50 focus:outline-none focus:border-yellow-500 transition font-press-start text-xs"
+              required
+            />
+          </div>
+
+          <button type="submit"
+            class="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-press-start py-4 px-6 rounded-lg transition transform hover:scale-105 text-sm"
+          >
+            🗺️ Post Bounty
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Initialize Lucide icons
+    lucide.createIcons();
+
+    // Handle form submission via Fetch API
+    document.getElementById('submitForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+
+      // Convert FormData to JSON
+      const payload = {};
+      formData.forEach((value, key) => { payload[key] = value; });
+
+      // Clear any previous error messages
+      const errorMsg = document.getElementById('errorMsg');
+      errorMsg.textContent = "";
+
+      try {
+        const response = await fetch('/challenge/submit-report', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          // Redirect to the dashboard upon successful submission.
+          window.location.href = '/challenge/dashboard';
+        } else {
+          const errorText = await response.text();
+          errorMsg.textContent = errorText;
+        }
+      } catch (error) {
+        errorMsg.textContent = "An error occurred. Please try again.";
+      }
+    });
+  </script>
+</body>
+</html>

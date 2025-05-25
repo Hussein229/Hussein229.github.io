@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phoenix Sentinel - Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/framer-motion@11.0.8/dist/framer-motion.js"></script>
+  <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            'press-start': ['"Press Start 2P"', 'cursive'],
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #1a1a2e, #2a2a4e, #1a1a2e);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    .star {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background: rgba(234, 179, 8, 0.3);
+      animation: twinkle 3s infinite ease-in-out;
+    }
+    @keyframes twinkle {
+      0%, 100% { transform: scale(1); opacity: 0.3; }
+      50% { transform: scale(2); opacity: 1; }
+    }
+    .float {
+      animation: float 3s infinite ease-in-out;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    .slide-up {
+      animation: slideUp 0.5s ease-out;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+    }
+    .modal.active {
+      display: flex;
+    }
+  </style>
+</head>
+<body>
+  <!-- Background stars -->
+  <script>
+    for (let i = 0; i < 30; i++) {
+      const star = document.createElement('div');
+      star.className = 'star';
+      star.style.left = `${Math.random() * 100}%`;
+      star.style.top = `${Math.random() * 100}%`;
+      star.style.animationDelay = `${Math.random() * 3}s`;
+      document.body.appendChild(star);
+    }
+  </script>
+
+  <nav class="relative bg-black/40 border-b-2 border-yellow-500">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20">
+        <div class="flex items-center slide-up">
+          <i class="float text-yellow-500" data-lucide="skull"></i>
+          <span class="ml-3 text-xl text-white font-press-start">
+            Phoenix Sentinel 🏴‍☠️
+          </span>
+        </div>
+        <div class="flex items-center space-x-4">
+          <a href="/challenge/submit-report" class="bg-yellow-500 hover:bg-yellow-600 text-black px-6 py-3 rounded-lg font-press-start text-xs transition transform hover:scale-105 flex items-center space-x-2">
+            <i data-lucide="anchor"></i>
+            <span>New Bounty 💰</span>
+          </a>
+          <a href="/challenge/logout" class="text-yellow-500 hover:text-yellow-400 transition transform hover:rotate-180">
+            <i data-lucide="log-out"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3" id="reports">
+      {% for report in reports %}
+        <div class="report-card bg-black/60 rounded-lg p-6 backdrop-blur-lg border-2 border-yellow-500/30 cursor-pointer hover:border-yellow-500 transition-all duration-300 transform hover:scale-105 slide-up"
+             data-report='{{ report | dump  }}'>
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-2">
+              {% if report.status == "completed" %}
+                <i class="text-green-500" data-lucide="check-circle"></i>
+                <span class="text-xl">🏴‍☠️</span>
+              {% elseif report.status == "analyzing" %}
+                <i class="text-yellow-500" data-lucide="clock"></i>
+                <span class="text-xl">🔍</span>
+              {% else %}
+                <i class="text-red-500" data-lucide="alert-triangle"></i>
+                <span class="text-xl">⚠️</span>
+              {% endif %}
+              <span class="text-yellow-500 capitalize font-press-start text-xs">{{ report.status }}</span>
+            </div>
+            <span class="font-press-start text-sm {% if report.risk_score >= 75 %}text-red-500{% elseif report.risk_score >= 50 %}text-yellow-500{% else %}text-green-500{% endif %}">
+              {% if report.risk_score %}
+                {{ report.risk_score }}% ⚔️
+              {% else %}
+                N/A
+              {% endif %}
+            </span>
+          </div>
+          <div class="space-y-3">
+            <p class="text-white font-press-start text-xs truncate">🎯 {{ report.target_url }}</p>
+            <p class="text-yellow-500/80 font-press-start text-xs">📜 Type: <span class="capitalize">{{ report.target_type }}</span></p>
+            <p class="text-yellow-500/80 font-press-start text-xs">⏰ {{ report.created_at | date("medium", "en") }}</p>
+          </div>
+        </div>
+      {% else %}
+        <p class="text-white font-press-start">No reports available.</p>
+      {% endfor %}
+    </div>
+  </main>
+
+  <!-- Report Details Modal -->
+  <div id="reportModal" class="modal items-center justify-center p-4">
+    <div class="bg-[#1a1a2e] rounded-lg p-8 w-full max-w-2xl max-h-[80vh] overflow-y-auto border-2 border-yellow-500 slide-up">
+      <!-- Modal content will be inserted dynamically -->
+    </div>
+  </div>
+
+  <script>
+    // Initialize Lucide icons for static content.
+    lucide.createIcons();
+
+    // Attach click listeners to each report card.
+    document.querySelectorAll(".report-card").forEach(card => {
+      card.addEventListener("click", function() {
+        const report = JSON.parse(this.dataset.report);
+        showReportDetails(report);
+      });
+    });
+
+    function HtmlEncode(s)
+    {
+      var el = document.createElement("div");
+      el.innerText = el.textContent = s;
+      s = el.innerHTML;
+      return s;
+    }
+
+    // Function to populate and show the report details modal.
+    function showReportDetails(report) {
+      const modal = document.getElementById('reportModal');
+      const modalContent = modal.querySelector('div');
+      
+      // If findingsContent exists, display it.
+      let findingsHtml = '';
+      if (report.findingsContent) {
+        findingsHtml = `
+          <p class="text-white text-xs"><strong>Findings Preview:</strong></p>
+          <div class="text-white text-xs border p-2 rounded">
+            ${HtmlEncode(report.findingsContent)}
+          </div>
+        `;
+      } else {
+        findingsHtml = `<p class="text-white text-xs">No detailed findings available.</p>`;
+      }
+      
+      modalContent.innerHTML = `
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-press-start text-yellow-500">🗺️ Treasure Map Details</h2>
+          <button onclick="closeModal()" class="text-yellow-500 hover:text-yellow-400 transition transform hover:rotate-90">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="space-y-6">
+          <p class="text-white text-xs"><strong>Status:</strong> ${report.status}</p>
+          <p class="text-white text-xs"><strong>Risk Score:</strong> ${report.risk_score}%</p>
+          <p class="text-white text-xs"><strong>Target URL:</strong> ${report.target_url}</p>
+          <p class="text-white text-xs"><strong>Target Type:</strong> ${report.target_type}</p>
+          <p class="text-white text-xs"><strong>Created At:</strong> ${new Date(report.created_at).toLocaleString()}</p>
+          <hr class="border-yellow-500">
+          ${findingsHtml}
+        </div>
+      `;
+      
+      modal.classList.add('active');
+      lucide.createIcons();
+    }
+
+    function closeModal() {
+      document.getElementById('reportModal').classList.remove('active');
+    }
+
+    // Close modal when clicking outside the content.
+    document.getElementById('reportModal').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) {
+        closeModal();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Phoenix Sentinel – All Reports</title>
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
+    rel="stylesheet"
+  />
+  <script src="https://cdn.tailwindcss.com" defer></script>
+  <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.js" defer></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #1a1a2e, #2a2a4e, #1a1a2e);
+      font-family: 'Press Start 2P', cursive;
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding: 1rem;
+    }
+    .slide-up {
+      animation: slideUp 0.5s ease-out both;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to   { transform: translateY(0);      opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <script defer>
+    document.addEventListener('DOMContentLoaded', () => {
+      // 1) Inject your reports as *valid* JSON
+      const reports = {{ reports | tojson | safe }};
+
+      // 2) All your helper functions…
+      function getRiskColor(score) {
+        if (!score) return 'text-gray-400';
+        if (score >= 75) return 'text-red-500';
+        if (score >= 50) return 'text-yellow-500';
+        return 'text-green-500';
+      }
+      function getStatusEmoji(status) {
+        switch (status) {
+          case 'completed': return '🏴‍☠️';
+          case 'analyzing': return '🔍';
+          default: return '⏳';
+        }
+      }
+      function renderReports(list) {
+        const container = document.getElementById('reportsList');
+        container.innerHTML = '';
+
+        if (!list.length) {
+          container.innerHTML = `
+            <div class="text-center py-12">
+              <p class="text-yellow-500 font-press-start text-sm">
+                No treasures found! 🏴‍☠️
+              </p>
+            </div>`;
+          return;
+        }
+
+        list.forEach((r,i) => {
+          const el = document.createElement('div');
+          el.className = 'bg-black/40 rounded-lg p-6 border-2 border-yellow-500/30 hover:border-yellow-500 transition-all duration-300 slide-up';
+          el.style.animationDelay = `${i * 0.1}s`;
+          el.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <p class="text-yellow-500/80 text-xs">Target:</p>
+                <p class="text-white text-xs truncate">🎯 ${r.target_url}</p>
+              </div>
+              <div>
+                <p class="text-yellow-500/80 text-xs">Status:</p>
+                <p class="text-white text-xs capitalize">${getStatusEmoji(r.status)} ${r.status}</p>
+              </div>
+              <div>
+                <p class="text-yellow-500/80 text-xs">Risk Score:</p>
+                <p class="text-xs ${getRiskColor(r.risk_score)}">
+                  ${r.risk_score != null ? `${r.risk_score}% ⚔️` : 'N/A'}
+                </p>
+              </div>
+              <div>
+                <p class="text-yellow-500/80 text-xs">Date:</p>
+                <p class="text-white text-xs">📅 ${new Date(r.created_at).toLocaleDateString()}</p>
+              </div>
+            </div>
+            <a href="/challenge/incident-reports/${r.id}"
+               class="mt-4 inline-block bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-500 text-xs px-4 py-2 rounded-lg transition">
+              View Details 🗺️
+            </a>`;
+          container.appendChild(el);
+        });
+      }
+
+      function filterAndSortReports() {
+        const term = document.getElementById('searchInput').value.toLowerCase();
+        const status = document.getElementById('statusFilter').value;
+        const sortBy = document.getElementById('sortBy').value;
+
+        let filtered = reports.filter(r => 
+          r.target_url.toLowerCase().includes(term) &&
+          (status === 'all' || r.status === status)
+        );
+
+        filtered.sort((a,b) => {
+          if (sortBy === 'date')
+            return new Date(b.created_at) - new Date(a.created_at);
+          return (b.risk_score||0) - (a.risk_score||0);
+        });
+
+        renderReports(filtered);
+      }
+
+      // 3) Wire up after DOM is ready
+      ['searchInput','statusFilter','sortBy'].forEach(id => {
+        document.getElementById(id).addEventListener(id==='searchInput'?'input':'change', filterAndSortReports);
+      });
+
+      lucide.createIcons();
+      filterAndSortReports();
+    });
+  </script>
+
+  <div class="max-w-4xl mx-auto">
+    <div class="flex justify-between items-center mb-8">
+      <a href="/challenge/dashboard"
+         class="text-yellow-500 hover:text-yellow-400 flex items-center text-sm">
+        <i data-lucide="arrow-left" class="w-5 h-5 mr-2"></i>
+        Return
+      </a>
+      <i class="text-yellow-500" data-lucide="skull"></i>
+    </div>
+
+    <h2 class="text-2xl text-center text-yellow-500 mb-8">Treasure Log 📜</h2>
+
+    <div class="bg-black/60 rounded-lg p-6 backdrop-blur-lg border-2 border-yellow-500 mb-8">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="relative">
+          <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 text-yellow-500/50 w-4 h-4"></i>
+          <input id="searchInput" placeholder="Search targets…"
+                 class="w-full bg-black/30 border-2 border-yellow-500/30 rounded-lg pl-10 py-2 text-yellow-500 text-xs focus:outline-none focus:border-yellow-500"/>
+        </div>
+        <select id="statusFilter"
+                class="bg-black/30 border-2 border-yellow-500/30 rounded-lg py-2 px-4 text-yellow-500 text-xs focus:outline-none focus:border-yellow-500">
+          <option value="all">All Status 🎯</option>
+          <option value="completed">Completed 🏴‍☠️</option>
+          <option value="analyzing">Analyzing 🔍</option>
+          <option value="pending">Pending ⏳</option>
+        </select>
+        <select id="sortBy"
+                class="bg-black/30 border-2 border-yellow-500/30 rounded-lg py-2 px-4 text-yellow-500 text-xs focus:outline-none focus:border-yellow-500">
+          <option value="date">Sort by Date ⌛</option>
+          <option value="risk">Sort by Risk ⚔️</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="reportsList" class="space-y-4"></div>
+  </div>
+</body>
+</html>
